@@ -5,6 +5,6 @@ use App\Models\Review;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    $book = Book::popular()->limit(5)->get();
+    $book = Book::popular()->minReviews(10)->get();
     dd($book);
 });
