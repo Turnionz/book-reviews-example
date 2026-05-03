@@ -14,23 +14,24 @@ class BookController extends Controller
     {
         $title = $request->input('title');
         $filter = $request->input('filter', '');
+        $page = $request->input('page', 1);
 
-        $books = Book::when(
+        $query = Book::when(
             $title,
             fn($query, $title) =>
             $query->title($title)
         );
 
-        $books = match ($filter) {
-            'popular_last_month' => $books->popularLastMonth(),
-            'popular_last_6months' => $books->popularLastSixMonths(),
-            'highest_rated_last_month' => $books->highestRatedLastMonth(),
-            'highest_rated_last_6months' => $books->highestRatedLastSixMonths(),
-            default => $books->orderBy('created_at', 'desc')
+        $query = match ($filter) {
+            'popular_last_month' => $query->popularLastMonth(),
+            'popular_last_6months' => $query->popularLastSixMonths(),
+            'highest_rated_last_month' => $query->highestRatedLastMonth(),
+            'highest_rated_last_6months' => $query->highestRatedLastSixMonths(),
+            default => $query->orderBy('created_at', 'desc')->withAvgRating()->withReviewCount()
         };
 
-        $cacheKey = 'books:' . $filter . ':' . $title;
-        $books = cache()->remember($cacheKey, 3600, fn() => $books->get());
+        $cacheKey = 'books:' . $filter . ':' . $title . ':page:' . $page;
+        $books = cache()->remember($cacheKey, 3600, fn() => $query->paginate());
 
         return view('books.index', ['books' => $books]);
     }
@@ -54,13 +55,17 @@ class BookController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Book $book)
+    public function show(int $id)
     {
-        $cacheKey = 'book:' . $book->id;
+        $cacheKey = 'book:' . $id;
 
-        $book = cache()->remember($cacheKey, 3600, fn() => $book->load([
-            'reviews' => fn($query) => $query->latest()
-        ]));
+        $book = cache()->remember(
+            $cacheKey,
+            3600,
+            fn() => Book::with([
+                'reviews' => fn($query) => $query->latest()
+            ])->withAvgRating()->withReviewCount()->findOrFail($id)
+        );
 
         return view('books.show', ['book' => $book]);
     }
