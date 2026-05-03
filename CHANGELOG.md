@@ -1,1 +1,1 @@
-Filter logic in the Book class and BookController
+Caching and cache invalidation in BookController and Review classes
