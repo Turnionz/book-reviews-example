@@ -52,7 +52,8 @@ class Book extends Model
      */
     public function scopeHighestRated(Builder $query, $from = null, $to = null)
     {
-        return $query->withAvg(['reviews' => fn(Builder $q) => $this->dateRangeFilter($q, $from, $to)], 'rating')
+        return $query->withCount(['reviews' => fn(Builder $q) => $this->dateRangeFilter($q, $from, $to)])
+            ->withAvg(['reviews' => fn(Builder $q) => $this->dateRangeFilter($q, $from, $to)], 'rating')
             ->orderBy('reviews_avg_rating', 'desc');
     }
 
@@ -70,5 +71,25 @@ class Book extends Model
         } elseif ($from && $to) {
             $query->whereBetween('created_at', [$from, $to]);
         }
+    }
+
+    public function scopePopularLastMonth(Builder $query)
+    {
+        return $query->popular(now()->subMonth(), now())->highestRated(now()->subMonth(), now())->minReviews(2);
+    }
+
+    public function scopePopularLastSixMonths(Builder $query)
+    {
+        return $query->popular(now()->subMonths(6), now())->highestRated(now()->subMonths(6), now())->minReviews(5);
+    }
+
+    public function scopeHighestRatedLastMonth(Builder $query)
+    {
+        return $query->highestRated(now()->subMonth(), now())->highestRated(now()->subMonth(), now())->minReviews(2);
+    }
+
+    public function scopeHighestRatedLastSixMonths(Builder $query)
+    {
+        return $query->highestRated(now()->subMonths(6), now())->highestRated(now()->subMonths(6), now())->minReviews(5);
     }
 }

@@ -1,1 +1,1 @@
-Search and filter added
+Filter logic in the Book class and BookController
